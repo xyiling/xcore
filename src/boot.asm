@@ -1,21 +1,20 @@
-org 0x7c00
-
-global _start
-_start:
-    xchg bx, bx
+; 主引导程序mbr
+; -------------------------------------------
+section _start vstart=0x7c00
+; 初始化寄存器
+    xor ax, ax  ; 异或相同的值得到0,即 ax = 0
+    mov ds, ax  ; 数据段寄存器 ds = 0
+    mov es, ax  ; 附加段寄存器 es = 0
+    mov ss, ax  ; 堆栈段寄存器 ss = 0
+    mov sp, 0x7c00  ; 
 ; 清屏
+; -------------------------------------------
     mov ax, 0x13
     int 0x10
 ; 文本模式
+; -------------------------------------------
     mov ax, 0x03
     int 0x10
-; 初始化寄存器
-    xor ax, ax  ; 异或相同的值得到0,即 ax = 0
-    mov ds, ax
-    mov es, ax
-    mov ss, ax
-    mov sp, 0x7c00
-
     ; xchg bx, bx ; bochs 使用的断点
     mov si, bootMsg
     call print
