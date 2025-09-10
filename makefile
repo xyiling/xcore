@@ -1,42 +1,53 @@
-.DEFAULT_GOAL := qemu
-V := @
-QEMU := qemu-system-x86_64
-BOCHS := bochs
-BFLAGS := -q -f bochsrc.txt
-QFLAGS := -S -s
-CC := gcc
-CFLAGS := -stdnolib -g -Wall 
-TERMINAL := gnome-terminal
-GDB := gdb
+AS = nasm
+ASBINFLAGS = -f bin
+ASELFFLAGS = -f elf32
+DD = dd
+DFLAGS = bs=512 count=1 conv=notrunc
+QEMU = qemu-system-i386
+QFLAGS = --drive format=raw,file=
 
-C_SRC := $(wildcard src/*.c)
-ASM_SRC := $(wildcard src/*.asm)
+BOCHS = bochs -q -f bochsrc
 
-OBJ := $(C_SRC:src/%.c=bin/%.o) 
-OBJ += $(ASM_SRC:src/%.asm=bin/%.o)
+LD = ld
+LDFLAGS=-m elf_i386 -T os.ld -nostdlib --nmagic
+CC = gcc
+CFLAGS=-c -m32 -O0 -ffreestanding -nostdlib -fno-pie -fno-stack-protector
+OBJCOPY = objcopy
 
-TARGET = bin/kernel.img
+DEFAULT_TARGET = $(TARGET)
+.PHONY = clean
 
-%.o: src/%.asm
-	$(V)mkdir -p bin
-	nasm -g -f bin -o bin/$@ $<
-
-$(TARGET): boot.o loader.o
-	yes | bximage -q -hd=16 -mode=create -sectsize=512 -imgmode=flat $@
-	dd if=bin/boot.o of=$@ bs=512 count=1 conv=notrunc
-	dd if=bin/loader.o of=$@ bs=512 count=4 seek=2 conv=notrunc
+BIN = bin
+BOOT = src/boot
+INIT = src/init
+TARGET = $(BIN)/kernel.img
+OBJS = $(BIN)/loader.bin $(BIN)/boot.bin $(BIN)/kernel.bin 
+V = @
 
 qemu: $(TARGET)
-	$(V)$(QEMU) $(QFLAGS) $< &
-	$(V)sleep 1
-	$(V)$(TERMINAL) -- bash -c "gdb -x scripts/gdbinit"
-
-run: $(TARGET)
-	$(V)$(QEMU) $<
+	$(V)$(QEMU) $(QFLAGS)$<
 
 bochs: $(TARGET)
-	$(BOCHS) $(BFLAGS)
+	$(V)$(BOCHS)
 
-.PHONY: clean
+$(TARGET): $(OBJS)
+	$(DD) if=/dev/zero of=$(TARGET) bs=512 count=3 2>/dev/null
+	$(DD) if=$(BIN)/boot.bin of=$@ $(DFLAGS)
+	$(DD) if=$(BIN)/loader.bin of=$@ $(DFLAGS) seek=1
+	$(DD) if=$(BIN)/kernel.bin of=$@ $(DFLAGS) seek=2
+
+$(BIN)/%.bin: $(BOOT)/%.asm
+	$(AS) $(ASBINFLAGS) $(BOOT)/$*.asm -o $(BIN)/$*.bin
+
+$(BIN)/%.bin: $(INIT)/%.asm
+	$(AS) $(ASELFFLAGS) $(INIT)/$*.asm -o $(BIN)/$*.bin
+
+$(BIN)/kernel.elf: src/kernel.c
+	$(CC) $(CFLAGS) $< -o $@
+
+$(BIN)/kernel.bin: $(BIN)/init.bin $(BIN)/kernel.elf
+	$(LD) $(LDFLAGS) $^ -o $@
+	$(OBJCOPY) -O binary $@
+
 clean:
-	rm -rf bin
+	rm -rf bin/*.*
