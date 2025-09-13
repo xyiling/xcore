@@ -1,5 +1,11 @@
 [bits 16]
 [org 0x900]
+jmp start
+nop
+
+; 常量定义
+LOADER_BASE_ADDR equ 0x900
+KERNEL_BASE_ADDR equ 0x9000
 
 ; 主程序
 start:
@@ -181,9 +187,7 @@ msg_setup_gdt db "Setting up GDT...", 13, 10, 0
 msg_protected_mode db "Entering protected mode...", 13, 10, 0
 
 
-; 常量定义
-LOADER_BASE_ADDR equ 0x900
-KERNEL_BASE_ADDR equ 0x8000
+
 
 ; GDT 描述符结构
 %macro Descriptor 3

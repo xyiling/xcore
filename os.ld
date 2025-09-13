@@ -3,7 +3,7 @@ ENTRY(_start)
 
 SECTIONS
 {
-    . = 0x8004;     /* 内核加载地址 */
+    . = 0x9000;     /* 内核加载地址 */
     
     .magic : {
         *(.magic)   /* 魔数段 */
