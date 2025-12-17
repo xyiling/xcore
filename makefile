@@ -3,17 +3,16 @@ ASBINFLAGS = -f bin
 ASELFFLAGS = -f elf32
 DD = dd
 DFLAGS = bs=512 count=1 conv=notrunc
-QEMU = qemu-system-i386
+QEMU = C:/"Program Files"/qemu/qemu-system-i386
 QFLAGS = --drive format=raw,file=
 
 BOCHS = bochs -q -f bochsrc
 
-LD = ld
+LD = C:\\env\\i686-elf-tools-windows\\bin\\i686-elf-ld.exe
 LDFLAGS=-m elf_i386 -T os.ld -nostdlib --nmagic
-CC = gcc
+CC = C:\\env\\i686-elf-tools-windows\\bin\\i686-elf-gcc.exe
 CFLAGS=-c -m32 -O0 -ffreestanding -nostdlib -fno-pie -fno-stack-protector
-OBJCOPY = objcopy
-
+OBJCOPY = C:\\env\\i686-elf-tools-windows\\bin\\i686-elf-objcopy.exe
 DEFAULT_TARGET = $(TARGET)
 .PHONY = clean
 
@@ -33,13 +32,15 @@ bochs: $(TARGET)
 $(TARGET): $(OBJS)
 	$(DD) if=/dev/zero of=$(TARGET) bs=512 count=3 2>/dev/null
 	$(DD) if=$(BIN)/boot.bin of=$@ $(DFLAGS)
-	$(DD) if=$(BIN)/loader.bin of=$@ $(DFLAGS) seek=1
-	$(DD) if=$(BIN)/kernel.bin of=$@ $(DFLAGS) seek=2
+	$(DD) if=$(BIN)/loader.bin of=$@ $(DFLAGS) seek=1 # loader.bin 写入第 1 扇区
+	$(DD) if=$(BIN)/kernel.bin of=$@ $(DFLAGS) seek=2 # kernel.bin 写入第 2 扇区
 
 $(BIN)/%.bin: $(BOOT)/%.asm
-	$(AS) $(ASBINFLAGS) $(BOOT)/$*.asm -o $(BIN)/$*.bin
+	mkdir -p $(BIN)
+	$(AS) $(ASBINFLAGS) -I src/boot/ $(BOOT)/$*.asm -o $(BIN)/$*.bin
 
 $(BIN)/%.bin: $(INIT)/%.asm
+	mkdir -p $(BIN)
 	$(AS) $(ASELFFLAGS) $(INIT)/$*.asm -o $(BIN)/$*.bin
 
 $(BIN)/kernel.elf: src/kernel.c
@@ -50,4 +51,4 @@ $(BIN)/kernel.bin: $(BIN)/init.bin $(BIN)/kernel.elf
 	$(OBJCOPY) -O binary $@
 
 clean:
-	rm -rf bin/*.*
+	rm -rf bin
