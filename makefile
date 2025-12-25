@@ -11,7 +11,7 @@ BOCHS = bochsdbg -q -f bochsrc.bxrc
 LD = i686-elf-ld
 LDFLAGS=-m elf_i386 -g -T os.ld -nostdlib
 CC = i686-elf-gcc
-CFLAGS=-c -m32 -march=i386 -fno-builtin -fno-omit-frame-pointer -Wl,--build-id=none -Wl,--nmagic -Wl,--no-dynamic-linker -Wall -Wextra -Werror -Wl,--build-id=none -Wl,--nmagic -Wl,--no-dynamic-linker -O0 -static -g -ffreestanding -nostdlib -fno-pie -fno-stack-protector
+CFLAGS=-c -m32 -march=i386 -fno-builtin -fno-omit-frame-pointer -Wall -Wextra -Werror -O0 -g -ffreestanding -nostdlib -fno-pie -fno-stack-protector -I src/include
 OBJCOPY = i686-elf-objcopy
 DEFAULT_TARGET = $(TARGET)
 .PHONY = clean
@@ -42,12 +42,40 @@ $(BIN)/%.bin: $(BOOT)/%.asm
 $(BIN)/%.bin: $(INIT)/%.asm
 	$(AS) $(ASELFFLAGS) $(INIT)/$*.asm -o $(BIN)/$*.bin
 
-$(BIN)/kern.elf: src/kern.c
-	$(CC) $(CFLAGS) $< -o $@
+# 源文件列表
+KERNEL_SRCS = src/kern.c \
+              src/lib/string.c \
+              src/lib/stdio.c \
+              src/lib/stdlib.c \
+              src/kernel/memory.c \
+              src/kernel/interrupt.c \
+              src/kernel/pic.c \
+              src/kernel/syscall.c \
+              src/kernel/task.c \
+              src/kernel/fs.c \
+              src/kernel/shell.c
 
-$(BIN)/kern.bin: $(BIN)/init.bin $(BIN)/kern.elf
+# 汇编源文件
+ASM_SRCS = src/kernel/interrupt.asm \
+           src/kernel/syscall.asm
+
+# 目标文件
+KERNEL_OBJS = $(KERNEL_SRCS:src/%.c=$(BIN)/%.o)
+ASM_OBJS = $(ASM_SRCS:src/%.asm=$(BIN)/%.o)
+
+$(BIN)/kern.elf: $(BIN)/init.bin $(KERNEL_OBJS) $(ASM_OBJS)
 	$(LD) $(LDFLAGS) $^ -o $(BIN)/kern.elf.tmp
 	$(OBJCOPY) -O binary $(BIN)/kern.elf.tmp $@
+
+# C源文件编译规则
+$(BIN)/%.o: src/%.c
+	$(V)mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) $< -o $@
+
+# 汇编源文件编译规则
+$(BIN)/%.o: src/%.asm
+	$(V)mkdir -p $(dir $@)
+	$(AS) $(ASELFFLAGS) $< -o $@
 
 clean:
 	rm -rf bin

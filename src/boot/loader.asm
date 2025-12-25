@@ -23,6 +23,10 @@ GdtPtr:
     dw GDT_LEN - 1
     dd 0 ; 基地址会在setup_gdt中设置
 
+; ARDS缓冲区地址（传递给内核）
+ARDS_BUFFER equ 0x5000
+ARDS_COUNT_ADDR equ 0x4FFC
+
 ; 主程序
 _start:
     ; 设置段寄存器
@@ -34,6 +38,13 @@ _start:
     
     mov si, msg_loading
     call print
+    
+    ; 检测内存
+    call detect_memory
+    
+    mov si, msg_memory_detected
+    call print
+    
     ; 加载内核到内存
     mov ebx, 2          ; 从第3个扇区开始（MBR通常在第0扇区）
     mov cx, 32          ; 读取32个扇区（16KB）
@@ -105,13 +116,10 @@ protected_mode_entry:
     mov gs, ax
     mov ss, ax
     mov esp, 0x9000
-    mov ax, SelectorVideo
-    mov gs, ax
-    ; line 11, col 0
-    mov byte [gs:80*11 + 0], 'O'
-    mov byte [gs:80*11 + 1], 0xc
-    mov byte [gs:80*11 + 2], 'K'
-    mov byte [gs:80*11 + 3], 0xc
+    
+    ; 将内存检测信息传递给内核
+    ; ARDS_COUNT_ADDR (0x4FFC) 存储ARDS数量
+    ; ARDS_BUFFER (0x5000) 存储ARDS数据
     
     ; 跳转到内核
     jmp dword SelectorCode:0x9000
@@ -172,7 +180,44 @@ read_disk:
     ret
 
 
+; 内存检测函数
+detect_memory:
+    xor ebx, ebx        ; ebx必须初始化为0
+    mov edi, ARDS_BUFFER ; ARDS缓冲区地址
+    mov edx, 0x534d4150  ; 签名 "SMAP"
+    mov dword [ARDS_COUNT_ADDR], 0  ; 初始化计数器
+    
+.next_ards:
+    mov eax, 0xE820     ; 功能号
+    mov ecx, 20         ; ARDS结构大小（20字节）
+    int 0x15            ; 调用BIOS中断
+    
+    jc .error           ; 如果CF置位，出错
+    
+    ; 检查签名
+    cmp eax, 0x534d4150
+    jne .error
+    
+    ; 增加计数器
+    inc dword [ARDS_COUNT_ADDR]
+    
+    ; 移动到下一个ARDS
+    add edi, 20
+    
+    ; 检查是否还有更多
+    cmp ebx, 0
+    jne .next_ards      ; 如果ebx不为0，继续
+    
+    ret
+
+.error:
+    mov si, msg_memory_error
+    call print
+    jmp $
+
 ; 数据区（放在代码后面）
 msg_loading db "Loading kernel...", 13, 10, 0
 msg_protected_mode db "Entering protected mode...", 13, 10, 0
+msg_memory_detected db "Memory detected...", 13, 10, 0
+msg_memory_error db "Memory detection error!", 13, 10, 0
 
