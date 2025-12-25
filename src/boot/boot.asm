@@ -18,11 +18,7 @@ _start:
     mov cx, 0
     mov dx, 0x184f
     int 0x10
-    ; ; 重置光标
-    ; mov ah, 0x2
-    ; mov bx, 0
-    ; mov dx, 0
-    ; int 0x10
+
     ; 文本模式
     mov ah, 0
     mov al, 0x3

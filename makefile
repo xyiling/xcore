@@ -9,9 +9,9 @@ QFLAGS = --drive format=raw,file=
 BOCHS = bochsdbg -q -f bochsrc.bxrc
 
 LD = i686-elf-ld
-LDFLAGS=-m elf_i386 -T os.ld -nostdlib
+LDFLAGS=-m elf_i386 -g -T os.ld -nostdlib
 CC = i686-elf-gcc
-CFLAGS=-c -m32 -O0 -ffreestanding -nostdlib -fno-pie -fno-stack-protector
+CFLAGS=-c -m32 -march=i386 -fno-builtin -fno-omit-frame-pointer -Wl,--build-id=none -Wl,--nmagic -Wl,--no-dynamic-linker -Wall -Wextra -Werror -Wl,--build-id=none -Wl,--nmagic -Wl,--no-dynamic-linker -O0 -static -g -ffreestanding -nostdlib -fno-pie -fno-stack-protector
 OBJCOPY = i686-elf-objcopy
 DEFAULT_TARGET = $(TARGET)
 .PHONY = clean
@@ -36,7 +36,7 @@ $(TARGET): $(OBJS)
 	$(DD) if=$(BIN)/kern.bin of=$@ $(DFLAGS) seek=2
 
 $(BIN)/%.bin: $(BOOT)/%.asm
-	mkdir -p $(BIN)
+	$(V)mkdir -p $(BIN)
 	$(AS) $(ASBINFLAGS) -I src/boot/ $(BOOT)/$*.asm -o $(BIN)/$*.bin
 
 $(BIN)/%.bin: $(INIT)/%.asm
@@ -46,8 +46,8 @@ $(BIN)/kern.elf: src/kern.c
 	$(CC) $(CFLAGS) $< -o $@
 
 $(BIN)/kern.bin: $(BIN)/init.bin $(BIN)/kern.elf
-	$(LD) $(LDFLAGS) $^ -o $@
-	$(OBJCOPY) -O binary $@
+	$(LD) $(LDFLAGS) $^ -o $(BIN)/kern.elf.tmp
+	$(OBJCOPY) -O binary $(BIN)/kern.elf.tmp $@
 
 clean:
 	rm -rf bin

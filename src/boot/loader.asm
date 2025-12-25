@@ -114,7 +114,7 @@ protected_mode_entry:
     mov byte [gs:80*11 + 3], 0xc
     
     ; 跳转到内核
-    jmp dword SelectorCode:KERNEL_BASE_ADDR
+    jmp dword SelectorCode:0x9000
 
 [bits 16]
 ; 读取磁盘扇区
