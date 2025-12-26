@@ -57,7 +57,7 @@ _start:
 
 ; 设置GDT（放在代码后面避免覆盖）
 gdt_init:
-    ; 设置代码段和数据段的基地址为0
+    ; 使用平坦内存模型：代码段和数据段基地址都为0
     mov eax, 0
     mov [LABEL_DESC_CODE + 2], ax
     shr eax, 16
@@ -70,7 +70,10 @@ gdt_init:
     mov [LABEL_DESC_DATA + 4], al
     mov [LABEL_DESC_DATA + 7], ah
     
-    mov eax, LABEL_GDT
+    ; GdtPtr需要包含GDT的线性地址 (段基址+偏移)
+    mov eax, cs
+    shl eax, 4
+    add eax, LABEL_GDT
     mov dword [GdtPtr + 2], eax
     ret
 
@@ -145,7 +148,7 @@ read_disk:
     mov dx, 0x1F5
     mov eax, ebx
     shr eax, 16
-    mov al, ah
+    mov al, al
     out dx, al
     
     mov dx, 0x1F6

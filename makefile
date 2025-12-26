@@ -13,8 +13,6 @@ LDFLAGS=-m elf_i386 -g -T os.ld -nostdlib
 CC = i686-elf-gcc
 CFLAGS=-c -m32 -march=i386 -fno-builtin -fno-omit-frame-pointer -Wall -Wextra -Werror -O0 -g -ffreestanding -nostdlib -fno-pie -fno-stack-protector -std=c11 -I src/include
 OBJCOPY = i686-elf-objcopy
-DEFAULT_TARGET = $(TARGET)
-.PHONY = clean
 
 BIN = bin
 BOOT = src/boot
@@ -23,10 +21,17 @@ TARGET = $(BIN)/kern.img
 OBJS = $(BIN)/loader.bin $(BIN)/boot.bin $(BIN)/kern.elf
 V = @
 
+.PHONY = all clean qemu debug
+
+# 默认目标：只构建镜像，不启动模拟器
+all: $(TARGET)
+
+# 启动 QEMU
 qemu: $(TARGET)
 	$(V)$(QEMU) $(QFLAGS)$<
 
-bochs: $(TARGET)
+# 使用 Bochs 调试
+debug: $(TARGET)
 	$(V)$(BOCHS)
 
 $(TARGET): $(OBJS)
