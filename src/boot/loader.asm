@@ -118,7 +118,7 @@ protected_mode_entry:
     mov fs, ax
     mov gs, ax
     mov ss, ax
-    mov esp, 0x9000
+    mov esp, 0x8000    ; 堆栈设置在 0x8000，避免与 0x9000 开始的内核代码冲突
     
     ; 将内存检测信息传递给内核
     ; ARDS_COUNT_ADDR (0x4FFC) 存储ARDS数量
