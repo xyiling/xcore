@@ -11,7 +11,7 @@ BOCHS = bochsdbg -q -f bochsrc.bxrc
 LD = i686-elf-ld
 LDFLAGS=-m elf_i386 -g -T os.ld -nostdlib
 CC = i686-elf-gcc
-CFLAGS=-c -m32 -march=i386 -fno-builtin -fno-omit-frame-pointer -Wall -Wextra -Werror -O0 -g -ffreestanding -nostdlib -fno-pie -fno-stack-protector -I src/include
+CFLAGS=-c -m32 -march=i386 -fno-builtin -fno-omit-frame-pointer -Wall -Wextra -Werror -O0 -g -ffreestanding -nostdlib -fno-pie -fno-stack-protector -std=c11 -I src/include
 OBJCOPY = i686-elf-objcopy
 DEFAULT_TARGET = $(TARGET)
 .PHONY = clean
@@ -20,7 +20,7 @@ BIN = bin
 BOOT = src/boot
 INIT = src/init
 TARGET = $(BIN)/kern.img
-OBJS = $(BIN)/loader.bin $(BIN)/boot.bin $(BIN)/kern.bin 
+OBJS = $(BIN)/loader.bin $(BIN)/boot.bin $(BIN)/kern.elf
 V = @
 
 qemu: $(TARGET)
@@ -33,7 +33,8 @@ $(TARGET): $(OBJS)
 	$(DD) if=/dev/zero of=$(TARGET) bs=512 count=14400 2>/dev/null
 	$(DD) if=$(BIN)/boot.bin of=$@ $(DFLAGS)
 	$(DD) if=$(BIN)/loader.bin of=$@ $(DFLAGS) seek=1
-	$(DD) if=$(BIN)/kern.bin of=$@ $(DFLAGS) seek=2
+	# 写入内核：将整个 kern.elf 写入镜像（不只一扇区）
+	$(DD) if=$(BIN)/kern.elf of=$@ bs=512 conv=notrunc seek=2
 
 $(BIN)/%.bin: $(BOOT)/%.asm
 	$(V)mkdir -p $(BIN)
@@ -61,7 +62,7 @@ ASM_SRCS = src/kernel/interrupt.asm \
 
 # 目标文件
 KERNEL_OBJS = $(KERNEL_SRCS:src/%.c=$(BIN)/%.o)
-ASM_OBJS = $(ASM_SRCS:src/%.asm=$(BIN)/%.o)
+ASM_OBJS = $(ASM_SRCS:src/%.asm=$(BIN)/asm/%.o)
 
 $(BIN)/kern.elf: $(BIN)/init.bin $(KERNEL_OBJS) $(ASM_OBJS)
 	$(LD) $(LDFLAGS) $^ -o $(BIN)/kern.elf.tmp
@@ -72,10 +73,16 @@ $(BIN)/%.o: src/%.c
 	$(V)mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) $< -o $@
 
-# 汇编源文件编译规则
-$(BIN)/%.o: src/%.asm
+# 汇编源文件编译规则（放到 bin/asm/... 以避免与C对象冲突）
+$(BIN)/asm/%.o: src/%.asm
 	$(V)mkdir -p $(dir $@)
 	$(AS) $(ASELFFLAGS) $< -o $@
 
 clean:
 	rm -rf bin
+
+msg ?= "update"
+submit:
+	git add .
+	git commit -m "$(msg)"
+	git push origin main

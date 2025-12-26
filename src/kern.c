@@ -38,7 +38,7 @@ static char scan_code_to_ascii(uint8_t scan_code) {
 static void keyboard_handler(void) {
     // 从键盘端口读取扫描码
     uint8_t scan_code;
-    asm volatile("inb %1, %0" : "=a"(scan_code) : "Nd"((uint16_t)0x60));
+    __asm__ __volatile__("inb %1, %0" : "=a"(scan_code) : "Nd"((uint16_t)0x60));
     
     // 只处理按键按下（扫描码最高位为0）
     if (!(scan_code & 0x80)) {
@@ -138,6 +138,6 @@ void kmain(void) {
     
     // 如果shell返回（不应该发生），进入无限循环
     for (;;) {
-        asm volatile("hlt");
+        __asm__ __volatile__("hlt");
     }
 }

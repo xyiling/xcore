@@ -3,18 +3,20 @@
 #include "../include/string.h"
 
 // 中断描述符表项结构
-typedef struct {
-    uint16_t offset_low;    // 偏移量低16位
-    uint16_t selector;      // 段选择子
-    uint8_t zero;           // 保留，必须为0
-    uint8_t type_attr;      // 类型和属性
-    uint16_t offset_high;   // 偏移量高16位
+typedef struct
+{
+    uint16_t offset_low;  // 偏移量低16位
+    uint16_t selector;    // 段选择子
+    uint8_t zero;         // 保留，必须为0
+    uint8_t type_attr;    // 类型和属性
+    uint16_t offset_high; // 偏移量高16位
 } __attribute__((packed)) idt_entry_t;
 
 // IDT指针结构
-typedef struct {
-    uint16_t limit;         // IDT大小-1
-    uint32_t base;          // IDT基地址
+typedef struct
+{
+    uint16_t limit; // IDT大小-1
+    uint32_t base;  // IDT基地址
 } __attribute__((packed)) idt_ptr_t;
 
 // IDT表（256个中断）
@@ -79,7 +81,8 @@ typedef void (*interrupt_handler_t)(void);
 interrupt_handler_t interrupt_handlers[IDT_SIZE];
 
 // 设置IDT条目
-static void set_idt_entry(uint8_t num, uint32_t base, uint16_t selector, uint8_t flags) {
+static void set_idt_entry(uint8_t num, uint32_t base, uint16_t selector, uint8_t flags)
+{
     idt[num].offset_low = base & 0xFFFF;
     idt[num].offset_high = (base >> 16) & 0xFFFF;
     idt[num].selector = selector;
@@ -88,39 +91,46 @@ static void set_idt_entry(uint8_t num, uint32_t base, uint16_t selector, uint8_t
 }
 
 // 通用中断处理函数（由汇编代码调用）
-void interrupt_handler(uint32_t int_no) {
-    if (int_no < IDT_SIZE && interrupt_handlers[int_no]) {
+void interrupt_handler(uint32_t int_no)
+{
+    if (int_no < IDT_SIZE && interrupt_handlers[int_no])
+    {
         interrupt_handlers[int_no]();
-    } else if (int_no < 32) {
+    }
+    else if (int_no < 32)
+    {
         // 异常处理
         printf("Exception %u occurred!\n", int_no);
     }
     // IRQ需要发送EOI
-    if (int_no >= 32 && int_no < 48) {
+    if (int_no >= 32 && int_no < 48)
+    {
         extern void pic_send_eoi(uint8_t irq);
         pic_send_eoi((uint8_t)(int_no - 32));
     }
 }
 
 // 注册中断处理函数
-void register_interrupt_handler(uint8_t int_no, interrupt_handler_t handler) {
+void register_interrupt_handler(uint8_t int_no, interrupt_handler_t handler)
+{
     interrupt_handlers[int_no] = handler;
 }
 
 // 初始化IDT
-void init_idt(void) {
+void init_idt(void)
+{
     // 初始化IDT指针
     idt_ptr.limit = sizeof(idt_entry_t) * IDT_SIZE - 1;
     idt_ptr.base = (uint32_t)&idt;
-    
+
     // 清零IDT
     memset(idt, 0, sizeof(idt));
     memset(interrupt_handlers, 0, sizeof(interrupt_handlers));
-    
+
     // 设置异常处理（0-31）
-    uint8_t code_selector = 0x08; // 代码段选择子
+    uint8_t code_selector = 0x08;  // 代码段选择子
     uint8_t interrupt_gate = 0x8E; // 32位中断门
-    
+
     set_idt_entry(0, (uint32_t)isr0, code_selector, interrupt_gate);
     set_idt_entry(1, (uint32_t)isr1, code_selector, interrupt_gate);
     set_idt_entry(2, (uint32_t)isr2, code_selector, interrupt_gate);
@@ -153,7 +163,7 @@ void init_idt(void) {
     set_idt_entry(29, (uint32_t)isr29, code_selector, interrupt_gate);
     set_idt_entry(30, (uint32_t)isr30, code_selector, interrupt_gate);
     set_idt_entry(31, (uint32_t)isr31, code_selector, interrupt_gate);
-    
+
     // 设置IRQ处理（32-47）
     set_idt_entry(32, (uint32_t)irq0, code_selector, interrupt_gate);
     set_idt_entry(33, (uint32_t)irq1, code_selector, interrupt_gate);
@@ -171,18 +181,19 @@ void init_idt(void) {
     set_idt_entry(45, (uint32_t)irq13, code_selector, interrupt_gate);
     set_idt_entry(46, (uint32_t)irq14, code_selector, interrupt_gate);
     set_idt_entry(47, (uint32_t)irq15, code_selector, interrupt_gate);
-    
+
     // 加载IDT
-    asm volatile("lidt %0" : : "m"(idt_ptr));
+    __asm__ __volatile__("lidt %0" : : "m"(idt_ptr));
 }
 
 // 启用中断
-void enable_interrupts(void) {
-    asm volatile("sti");
+void enable_interrupts(void)
+{
+    __asm__ __volatile__("sti");
 }
 
 // 禁用中断
-void disable_interrupts(void) {
-    asm volatile("cli");
+void disable_interrupts(void)
+{
+    __asm__ __volatile__("cli");
 }
-
