@@ -26,15 +26,15 @@ static int cmd_clear(int argc, char **argv);
 
 // 命令表
 static command_t commands[] = {
-    {"help", "显示帮助信息", cmd_help},
-    {"info", "显示系统信息", cmd_info},
-    {"meminfo", "显示内存信息", cmd_meminfo},
-    {"ls", "列出目录", cmd_ls},
-    {"echo", "回显参数", cmd_echo},
-    {"ps", "显示进程列表", cmd_ps},
-    {"reboot", "重启系统", cmd_reboot},
-    {"shutdown", "关机", cmd_shutdown},
-    {"clear", "清屏", cmd_clear},
+    {"help", "show help information", cmd_help},
+    {"info", "show system information", cmd_info},
+    {"meminfo", "show memory information", cmd_meminfo},
+    {"ls", "list directory", cmd_ls},
+    {"echo", "echo arguments", cmd_echo},
+    {"ps", "show process list", cmd_ps},
+    {"reboot", "reboot system", cmd_reboot},
+    {"shutdown", "shutdown system", cmd_shutdown},
+    {"clear", "clear screen", cmd_clear},
     {NULL, NULL, NULL}};
 
 // 命令缓冲区

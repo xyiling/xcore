@@ -6,6 +6,28 @@ static int cursor_row = 0;
 static int cursor_col = 0;
 static uint8_t text_color = 0x0C; // 红色字符，黑色背景
 
+// VGA光标控制端口
+#define VGA_CRTC_INDEX 0x3D4
+#define VGA_CRTC_DATA  0x3D5
+
+// 内联端口I/O函数
+static inline void outb(uint16_t port, uint8_t val) {
+    __asm__ __volatile__("outb %0, %1" : : "a"(val), "Nd"(port));
+}
+
+// 更新硬件光标位置
+static void update_hardware_cursor(void) {
+    uint16_t position = cursor_row * SCREEN_WIDTH + cursor_col;
+    
+    // 设置光标位置低8位
+    outb(VGA_CRTC_INDEX, 0x0F);
+    outb(VGA_CRTC_DATA, position & 0xFF);
+    
+    // 设置光标位置高8位
+    outb(VGA_CRTC_INDEX, 0x0E);
+    outb(VGA_CRTC_DATA, (position >> 8) & 0xFF);
+}
+
 void putchar(char c)
 {
     if (c == '\n')
@@ -49,6 +71,9 @@ void putchar(char c)
         memmove(video, video + SCREEN_WIDTH, (SCREEN_HEIGHT - 1) * SCREEN_WIDTH * 2);
         memset(video + (SCREEN_HEIGHT - 1) * SCREEN_WIDTH, 0, SCREEN_WIDTH * 2);
     }
+
+    // 更新硬件光标位置
+    update_hardware_cursor();
 }
 
 void puts(const char *str)
@@ -68,12 +93,14 @@ void clear_screen(void)
     }
     cursor_row = 0;
     cursor_col = 0;
+    update_hardware_cursor();
 }
 
 void set_cursor(int row, int col)
 {
     cursor_row = row;
     cursor_col = col;
+    update_hardware_cursor();
 }
 
 int get_cursor_row(void)
