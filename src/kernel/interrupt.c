@@ -2,6 +2,55 @@
 #include "../include/stdio.h"
 #include "../include/string.h"
 
+// 内联端口I/O函数
+static inline uint8_t inb(uint16_t port) {
+    uint8_t ret;
+    __asm__ __volatile__("inb %1, %0" : "=a"(ret) : "Nd"(port));
+    return ret;
+}
+
+static inline void outb(uint8_t value, uint16_t port) {
+    __asm__ __volatile__("outb %0, %1" : : "a"(value), "Nd"(port));
+}
+
+// 键盘相关
+#define KEYBOARD_DATA_PORT 0x60
+#define KEYBOARD_STATUS_PORT 0x64
+
+// 键盘扫描码到ASCII映射（简化版）
+static const char scancode_to_ascii[] = {
+    0, 0, '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=', '\b', '\t',
+    'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '[', ']', '\n', 0, 'a', 's',
+    'd', 'f', 'g', 'h', 'j', 'k', 'l', ';', '\'', '`', 0, '\\', 'z', 'x', 'c', 'v',
+    'b', 'n', 'm', ',', '.', '/', 0, '*', 0, ' ', 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, '7', '8', '9', '-', '4', '5', '6', '+', '1',
+    '2', '3', '0', '.', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+};
+
+// 键盘中断处理函数
+static void keyboard_interrupt_handler(void)
+{
+    uint8_t scancode = inb(KEYBOARD_DATA_PORT);
+    
+    // 只处理按键按下事件（忽略释放事件）
+    if (scancode < 128) {
+        char ascii = scancode_to_ascii[scancode];
+        if (ascii != 0) {
+            keyboard_putchar(ascii);
+        }
+    }
+}
+
 // 中断描述符表项结构
 typedef struct
 {
@@ -184,6 +233,9 @@ void init_idt(void)
 
     // 加载IDT
     __asm__ __volatile__("lidt %0" : : "m"(idt_ptr));
+
+    // 注册键盘中断处理函数
+    register_interrupt_handler(33, keyboard_interrupt_handler); // IRQ1 = 32 + 1 = 33
 }
 
 // 启用中断

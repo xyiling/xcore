@@ -10,5 +10,6 @@
 
 ; 段属性
 DA_32 equ 0x4000        ; 32位段
+DA_LIMIT_4K equ 0x8000  ; 段界限粒度为4K
 DA_CR equ 0x9A          ; 可执行、可读代码段
 DA_DRW equ 0x92         ; 可读写数据段

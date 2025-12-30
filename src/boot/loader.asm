@@ -7,8 +7,8 @@ jmp _start
 LOADER_BASE_ADDR equ 0x900
 KERNEL_BASE_ADDR equ 0x9000
 LABEL_GDT:          Descriptor 0,       0,          0
-LABEL_DESC_CODE:    Descriptor 0,       0xFFFFF,    DA_CR | DA_32
-LABEL_DESC_DATA:    Descriptor 0,       0xFFFFF,    DA_DRW | DA_32
+LABEL_DESC_CODE:    Descriptor 0,       0xFFFFF,    DA_CR | DA_32 | DA_LIMIT_4K
+LABEL_DESC_DATA:    Descriptor 0,       0xFFFFF,    DA_DRW | DA_32 | DA_LIMIT_4K
 LABEL_DESC_VIDEO:   Descriptor 0xB8000, 0xFFFF,     DA_DRW
 
 GDT_LEN equ $ - LABEL_GDT

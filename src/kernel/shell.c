@@ -18,6 +18,8 @@ static int cmd_help(int argc, char **argv);
 static int cmd_info(int argc, char **argv);
 static int cmd_meminfo(int argc, char **argv);
 static int cmd_ls(int argc, char **argv);
+static int cmd_echo(int argc, char **argv);
+static int cmd_ps(int argc, char **argv);
 static int cmd_reboot(int argc, char **argv);
 static int cmd_shutdown(int argc, char **argv);
 static int cmd_clear(int argc, char **argv);
@@ -28,6 +30,8 @@ static command_t commands[] = {
     {"info", "显示系统信息", cmd_info},
     {"meminfo", "显示内存信息", cmd_meminfo},
     {"ls", "列出目录", cmd_ls},
+    {"echo", "回显参数", cmd_echo},
+    {"ps", "显示进程列表", cmd_ps},
     {"reboot", "重启系统", cmd_reboot},
     {"shutdown", "关机", cmd_shutdown},
     {"clear", "清屏", cmd_clear},
@@ -82,6 +86,27 @@ static int cmd_ls(int argc, char **argv)
     (void)argv;
     printf("Directory listing:\n");
     printf("  / (root)\n");
+    return 0;
+}
+
+static int cmd_echo(int argc, char **argv)
+{
+    for (int i = 1; i < argc; i++) {
+        if (i > 1) printf(" ");
+        printf("%s", argv[i]);
+    }
+    printf("\n");
+    return 0;
+}
+
+static int cmd_ps(int argc, char **argv)
+{
+    (void)argc;
+    (void)argv;
+    printf("Process list:\n");
+    printf("PID   Name       State\n");
+    printf("1     kernel     Running\n");
+    printf("2     shell      Running\n");
     return 0;
 }
 
